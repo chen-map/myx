@@ -40,3 +40,14 @@ Connection: keep-alive
 
 add success!
 ```
+### 11.6更新查找和删除操作
+加上了ai帮忙编写的前端html，可以简易的增加用户，查询，删除
+##### 增加
+<img width="1919" height="973" alt="image" src="https://github.com/user-attachments/assets/359e85bd-a588-4041-a91b-ac720ac10202" />
+ 查询
+<img width="808" height="495" alt="image" src="https://github.com/user-attachments/assets/c87fbee5-6286-4655-ad0e-7e01e8b6634c" />
+ 删除
+<img width="817" height="286" alt="image" src="https://github.com/user-attachments/assets/6d9e5e7d-842e-488e-ba52-a9933e5081e5" />
+
+
+
