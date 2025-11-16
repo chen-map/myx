@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>智谱 AI 聊天</title>
+    <!-- 引入 Tailwind CSS（无需本地安装） -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- 引入图标库 -->
+    <link href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css" rel="stylesheet">
+    <style>
+        /* 滚动条美化 */
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
+        ::-webkit-scrollbar-track { background: #f1f5f9; }
+        /* 动画效果 */
+        .fade-in { animation: fadeIn 0.3s ease-in-out; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+    </style>
+</head>
+<body class="bg-gray-50 min-h-screen flex flex-col">
+<!-- 顶部导航栏 -->
+<header class="bg-white shadow-sm py-4 px-6 flex items-center justify-between">
+    <div class="flex items-center gap-2">
+        <i class="fa fa-robot text-blue-500 text-2xl"></i>
+        <h1 class="text-xl font-bold text-gray-800">智谱 AI 聊天助手</h1>
+    </div>
+    <div class="flex items-center gap-4">
+        <select id="modelSelect" class="bg-gray-100 border border-gray-300 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+            <option value="glm-4-flash">GLM-4-Flash（快速版）</option>
+            <option value="glm-4.6">GLM-4.6（增强版）</option>
+            <option value="glm-3-turbo">GLM-3-Turbo（基础版）</option>
+        </select>
+        <button id="clearBtn" class="text-gray-600 hover:text-red-500 transition-colors">
+            <i class="fa fa-trash-o text-lg"></i>
+        </button>
+    </div>
+</header>
+
+<!-- 聊天内容区域 -->
+<main class="flex-1 p-4 md:p-6 overflow-hidden">
+    <div id="chatContainer" class="max-w-4xl mx-auto h-[calc(100vh-180px)] bg-white rounded-xl shadow-sm p-4 overflow-y-auto space-y-6">
+        <!-- 欢迎消息 -->
+        <div class="flex gap-3 fade-in">
+            <div class="w-10 h-10 rounded-full bg-blue-500 flex items-center justify-center text-white flex-shrink-0">
+                <i class="fa fa-robot"></i>
+            </div>
+            <div class="bg-blue-50 rounded-lg px-4 py-3 max-w-[80%]">
+                <p class="text-gray-800">你好！我是智谱 AI 聊天助手，有什么可以帮助你的？</p>
+                <p class="text-xs text-gray-500 mt-1">GLM 大语言模型 · 响应时间 < 3s</p>
+            </div>
+        </div>
+    </div>
+</main>
+
+<!-- 输入区域 -->
+<footer class="bg-white shadow-inner py-4 px-6">
+    <div class="max-w-4xl mx-auto flex gap-3">
+            <textarea
+                    id="userInput"
+                    placeholder="请输入你的问题..."
+                    class="flex-1 border border-gray-300 rounded-lg px-4 py-3 resize-none focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    rows="2"
+            ></textarea>
+        <button id="sendBtn" class="bg-blue-500 hover:bg-blue-600 text-white rounded-lg px-6 py-3 transition-colors flex items-center justify-center gap-2">
+            <i class="fa fa-paper-plane"></i>
+            <span>发送</span>
+        </button>
+    </div>
+    <p class="text-center text-xs text-gray-500 mt-2">支持多轮对话 · 点击右上角清空聊天记录</p>
+</footer>
+
+<script>
+    //  DOM 元素
+    const chatContainer = document.getElementById('chatContainer');
+    const userInput = document.getElementById('userInput');
+    const sendBtn = document.getElementById('sendBtn');
+    const clearBtn = document.getElementById('clearBtn');
+    const modelSelect = document.getElementById('modelSelect');
+
+    // 后端接口地址（本地服务）
+    const API_URL = 'http://localhost:8080/ai/chat';
+
+    // 发送消息
+    const sendMessage = async () => {
+        const content = userInput.value.trim();
+        if (!content) return;
+
+        // 1. 添加用户消息到界面
+        addMessageToUI('user', content);
+        userInput.value = '';
+
+        // 2. 显示加载状态
+        const loadingId = addLoadingToUI();
+
+        try {
+            // 3. 调用后端接口
+            const response = await fetch(API_URL, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    userInput: content,
+                    model: modelSelect.value
+                })
+            });
+
+            // 4. 处理响应
+            if (!response.ok) throw new Error(`HTTP 错误！状态码: ${response.status}`);
+
+            // 后端返回纯文本，直接处理
+            const aiContent = await response.text();
+            removeLoadingFromUI(loadingId);
+            addMessageToUI('ai', aiContent);
+
+        } catch (error) {
+            removeLoadingFromUI(loadingId);
+            addMessageToUI('ai', `抱歉，服务调用失败：${error.message}`, true);
+            console.error('接口调用错误：', error);
+        }
+    };
+
+    // 添加消息到界面
+    const addMessageToUI = (role, content, isError = false) => {
+        const isUser = role === 'user';
+        const messageDiv = document.createElement('div');
+        messageDiv.className = `flex gap-3 fade-in ${isUser ? 'justify-end' : ''}`;
+
+        const avatar = document.createElement('div');
+        avatar.className = `w-10 h-10 rounded-full flex items-center justify-center text-white flex-shrink-0 ${
+            isUser ? 'bg-gray-400' : 'bg-blue-500'
+        }`;
+        avatar.innerHTML = isUser ? '<i class="fa fa-user"></i>' : '<i class="fa fa-robot"></i>';
+
+        const contentDiv = document.createElement('div');
+        contentDiv.className = `rounded-lg px-4 py-3 max-w-[80%] ${
+            isUser
+                ? 'bg-gray-100 text-gray-800'
+                : isError
+                    ? 'bg-red-50 text-red-700'
+                    : 'bg-blue-50 text-gray-800'
+        }`;
+
+        const contentP = document.createElement('p');
+        contentP.textContent = content;
+        contentDiv.appendChild(contentP);
+
+        const timeP = document.createElement('p');
+        timeP.className = `text-xs mt-1 ${
+            isError ? 'text-red-500' : 'text-gray-500'
+        }`;
+        timeP.textContent = new Date().toLocaleTimeString() + ` · ${modelSelect.options[modelSelect.selectedIndex].text}`;
+        contentDiv.appendChild(timeP);
+
+        if (isUser) {
+            messageDiv.appendChild(contentDiv);
+            messageDiv.appendChild(avatar);
+        } else {
+            messageDiv.appendChild(avatar);
+            messageDiv.appendChild(contentDiv);
+        }
+
+        chatContainer.appendChild(messageDiv);
+        chatContainer.scrollTop = chatContainer.scrollHeight;
+    };
+
+    // 添加加载状态
+    const addLoadingToUI = () => {
+        const loadingId = `loading-${Date.now()}`;
+        const loadingDiv = document.createElement('div');
+        loadingDiv.id = loadingId;
+        loadingDiv.className = 'flex gap-3 fade-in';
+
+        loadingDiv.innerHTML = `
+                <div class="w-10 h-10 rounded-full bg-blue-500 flex items-center justify-center text-white flex-shrink-0">
+                    <i class="fa fa-robot"></i>
+                </div>
+                <div class="bg-blue-50 rounded-lg px-4 py-3 max-w-[80%]">
+                    <div class="flex gap-1">
+                        <div class="w-2 h-2 rounded-full bg-blue-500 animate-bounce" style="animation-delay: 0ms"></div>
+                        <div class="w-2 h-2 rounded-full bg-blue-500 animate-bounce" style="animation-delay: 150ms"></div>
+                        <div class="w-2 h-2 rounded-full bg-blue-500 animate-bounce" style="animation-delay: 300ms"></div>
+                    </div>
+                </div>
+            `;
+
+        chatContainer.appendChild(loadingDiv);
+        chatContainer.scrollTop = chatContainer.scrollHeight;
+        return loadingId;
+    };
+
+    // 移除加载状态
+    const removeLoadingFromUI = (loadingId) => {
+        const loadingDiv = document.getElementById(loadingId);
+        if (loadingDiv) loadingDiv.remove();
+    };
+
+    // 清空聊天记录
+    const clearChat = () => {
+        if (confirm('确定要清空聊天记录吗？')) {
+            chatContainer.innerHTML = '';
+            addMessageToUI('ai', '你好！我是智谱 AI 聊天助手，有什么可以帮助你的？');
+        }
+    };
+
+    // 事件监听
+    sendBtn.addEventListener('click', sendMessage);
+    clearBtn.addEventListener('click', clearChat);
+
+    // 回车发送（Shift+回车换行）
+    userInput.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' && !e.shiftKey) {
+            e.preventDefault();
+            sendMessage();
+        }
+    });
+
+    // 自动调整文本域高度
+    userInput.addEventListener('input', () => {
+        userInput.style.height = 'auto';
+        userInput.style.height = Math.min(userInput.scrollHeight, 120) + 'px';
+    });
+</script>
+</body>
+</html>
