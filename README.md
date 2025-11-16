@@ -55,7 +55,7 @@ add success!
 
 
 
-## 11.16 ai api调用页面
+## 3.aiapi调用页面
 调用质谱ai 的api接口，完成简单ai询问界面搭建
 
 <img width="2238" height="1337" alt="image" src="https://github.com/user-attachments/assets/840363b9-cc0f-44f3-8c3a-0477abb1161a" />
