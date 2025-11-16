@@ -48,6 +48,8 @@ add success!
 <img width="808" height="495" alt="image" src="https://github.com/user-attachments/assets/c87fbee5-6286-4655-ad0e-7e01e8b6634c" />
  删除
 <img width="817" height="286" alt="image" src="https://github.com/user-attachments/assets/6d9e5e7d-842e-488e-ba52-a9933e5081e5" />
+## 11.16 ai api调用页面
+<img width="2238" height="1337" alt="image" src="https://github.com/user-attachments/assets/840363b9-cc0f-44f3-8c3a-0477abb1161a" />
 
 
 
